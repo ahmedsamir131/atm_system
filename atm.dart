@@ -1,40 +1,87 @@
- import 'dart:io';
+import 'dart:async';
+import 'dart:io';
 
-int balance = 0;
-void load_balance() {
-  File file = File("balance.txt");
-  String line = file.readAsStringSync();
-  balance = int.parse(line);
-}
+Map<String, num> users = {
+  "ahmed": 12000,
+  "mohamed": 10000,
+  "ali": 13451,
+  "said": 12342,
+};
+Map<String, num> passwords = {
+  "ahmed": 1234,
+  "mohamed": 1234,
+  "ali": 1234,
+  "said": 1234,
+};
 
-void save_balance() {
-  File file = File("balance.txt");
-  file.writeAsStringSync(balance.toString());
-}
-
-void showBalance() {
-  print("your balance is ---> $balance ");
-}
-
-void depositMoney() {
-  print("entr eyour money wanted to add : ");
-  int value = int.parse(stdin.readLineSync()!);
-  if (value != null) {
-    balance += value;
-    save_balance();
+void loadUsers() {
+  File file = File("users.txt");
+  if (file.existsSync()) {
+    List<String> lines = file.readAsLinesSync();
+    for (String line in lines) {
+      List<String> parts = line.split("=");
+      String username = parts[0];
+      num balance = num.parse(parts[1]);
+      users[username] = balance;
+    }
   }
 }
 
-void withdrawMoney() {
+void loadPasswords() {
+  File file = File("passwords.txt");
+  if (file.existsSync()) {
+    List<String> lines = file.readAsLinesSync();
+    for (String line in lines) {
+      List<String> parts = line.split("=");
+      String username = parts[0];
+      num passwod = num.parse(parts[1]);
+      passwords[username] = passwod;
+    }
+  }
+}
+
+void savepasswords() {
+  File file = File("passwords.txt");
+  String data = "";
+  passwords.forEach((key, value) {
+    data += '$key=$value\n';
+  });
+  file.writeAsStringSync(data);
+}
+
+void saveusers() {
+  File file = File("users.txt");
+  String data = "";
+  users.forEach((key, value) {
+    data += '$key=$value\n';
+  });
+  file.writeAsString(data);
+}
+
+void showBalance(String username) {
+  print("your balance is ---> ${users[username]} ");
+}
+
+void depositMoney(String username) {
+  print("entr eyour money wanted to add : ");
+  int value = int.parse(stdin.readLineSync()!);
+  if (value != null) {
+    users[username] = users[username]! + value;
+    saveusers();
+  }
+}
+
+void withdrawMoney(String username) {
   while (true) {
     print("entr your money wanted to withdrawal : ");
     int value = int.parse(stdin.readLineSync()!);
-    if (value != null && balance > 0) {
-      if (value > balance) {
+    if (value != null && users[username]! > 0) {
+      if (value > users[username]!) {
         print("the value grater than balance . try again : ");
       } else {
-        balance -= value;
-        save_balance();
+        users[username] = users[username]! - value;
+        saveusers();
+
         break;
       }
     } else {
@@ -44,52 +91,77 @@ void withdrawMoney() {
   }
 }
 
-int login() {
+String login() {
   int count = 0;
   while (count < 3) {
+    print("please entre the username : ");
+    String username = stdin.readLineSync()!;
     print("please entre the password : ");
     int password = int.parse(stdin.readLineSync()!);
-    if (password == 1234) {
-      return 1;
+    if (password == passwords[username]) {
+      return username;
     } else {
       count++;
     }
   }
-  return 0;
+  return 'a';
+}
+
+void initializeIfFilesMissing() {
+  File userfile = File("users.txt");
+  File passwordfile = File("passwords.txt");
+  if (userfile.existsSync() == false) {
+    saveusers();
+  }
+  if (passwordfile.existsSync() == false) {
+    savepasswords();
+  }
 }
 
 void show_menu() {
-  if (login() == 0) {
-    print("the password is wrong : please try another timr : ");
-    return;
-  }
-  load_balance();
   while (true) {
-    print("1 -  show balance ");
-    print("2 -  depositMoney");
-    print("3 -  withdrawMoney");
-    print("4-   exit");
-    print("entre the choice : ");
-    int choice = int.parse(stdin.readLineSync()!);
-    switch (choice) {
-      case 1:
-        showBalance();
-        break;
+    String username = login();
+    if (username == 'a') {
+      print("The password is wrong. Please try another time.");
+      return;
+    }
 
-      case 2:
-        depositMoney();
+    while (true) {
+      print("1 -  show balance ");
+      print("2 -  depositMoney");
+      print("3 -  withdrawMoney");
+      print("4-   exit");
+      print("5 -  back the login page");
+      print("entre the choice : ");
+      int choice = int.parse(stdin.readLineSync()!);
+      switch (choice) {
+        case 1:
+          showBalance(username);
+          break;
+
+        case 2:
+          depositMoney(username);
+          break;
+        case 3:
+          withdrawMoney(username);
+          break;
+        case 4:
+          return;
+        case 5:
+          break;
+        default:
+          print("invalid input ....");
+      }
+      if (choice == 5) {
         break;
-      case 3:
-        withdrawMoney();
-        break;
-      case 4:
-        return;
-      default:
-        print("invalid input ....");
+      }
     }
   }
 }
 
 void main() {
+  initializeIfFilesMissing();
+  loadPasswords();
+  loadUsers();
   show_menu();
 }
